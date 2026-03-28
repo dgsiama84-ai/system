@@ -87,7 +87,7 @@ export default function OpnameForm({
           <label className="label">Stok Fisik (Real)</label>
           <input
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             value={realQty}
             onChange={e => setRealQty(e.target.value)}
@@ -109,7 +109,7 @@ export default function OpnameForm({
             <span className={`text-lg font-bold ${
               diff > 0 ? 'text-green-400' : diff < 0 ? 'text-red-400' : 'text-white/40'
             }`}>
-              {diff > 0 ? '+' : ''}{diff.toFixed(2)}
+              {diff > 0 ? '+' : ''}{Math.round(diff)}
             </span>
           </div>
         )}

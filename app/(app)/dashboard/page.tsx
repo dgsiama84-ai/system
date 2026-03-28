@@ -15,18 +15,28 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, email')
+    .select('role, email, name')
     .eq('id', user.id)
     .single()
 
+  const name = (profile as any)?.name || profile?.email?.split('@')[0] || 'User'
+
   if (profile?.role === 'admin') {
-    return <AdminDashboard supabase={supabase} />
+    return <AdminDashboard supabase={supabase} adminName={name} />
   }
 
-  return <StaffDashboard supabase={supabase} userId={user.id} email={profile?.email ?? ''} role={profile?.role ?? 'staff'} />
+  return (
+    <StaffDashboard
+      supabase={supabase}
+      userId={user.id}
+      email={profile?.email ?? ''}
+      name={name}
+      role={profile?.role ?? 'staff'}
+    />
+  )
 }
 
-async function AdminDashboard({ supabase }: { supabase: any }) {
+async function AdminDashboard({ supabase, adminName }: { supabase: any; adminName: string }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -55,7 +65,9 @@ async function AdminDashboard({ supabase }: { supabase: any }) {
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>Dashboard</h1>
+        <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
+          Halo, {adminName} 👋
+        </h1>
         <p className="text-white/40 text-sm mt-0.5">
           {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
@@ -123,10 +135,11 @@ async function AdminDashboard({ supabase }: { supabase: any }) {
   )
 }
 
-async function StaffDashboard({ supabase, userId, email, role }: {
+async function StaffDashboard({ supabase, userId, email, name, role }: {
   supabase: any
   userId: string
   email: string
+  name: string
   role: string
 }) {
   const today = new Date()
@@ -144,13 +157,12 @@ async function StaffDashboard({ supabase, userId, email, role }: {
 
   const todaySales = (todayTx ?? []).reduce((s: number, t: any) => s + (t.total_price ?? 0), 0)
   const todayCount = todayTx?.length ?? 0
-  const username = email.split('@')[0]
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
-          Halo, {username} 👋
+          Halo, {name} 👋
         </h1>
         <p className="text-white/40 text-sm mt-0.5">
           {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -163,8 +175,7 @@ async function StaffDashboard({ supabase, userId, email, role }: {
           <User size={20} className="text-orange-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm truncate">{username}</p>
-          <p className="text-white/40 text-xs truncate mt-0.5">{email}</p>
+          <p className="font-bold text-sm truncate">{email}</p>
         </div>
         <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-white/5 text-white/40 border border-white/10 uppercase tracking-wide shrink-0">
           {role}

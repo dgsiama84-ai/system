@@ -57,7 +57,8 @@ export default function StockInForm({ ingredients }: { ingredients: Ingredient[]
           <p className="text-sm font-semibold text-white/60 uppercase tracking-wider">Stok Masuk</p>
 
           <div>
-            <label className="text-xs text-white/40 mb-1 block">Bahan</label>
+            <label className="text-xs text-white/40 mb-1 block">Jumlah (pack)</label>
+            <p className="text-[10px] text-white/30 mb-1">1 pack = 240 pcs</p>
             <select
               name="ingredient_id"
               required
