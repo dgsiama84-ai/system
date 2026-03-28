@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { LayoutDashboard, ShoppingCart, Package, ClipboardCheck, BarChart2, Receipt } from 'lucide-react'
 
 const staffNav = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/transactions', label: 'Transaksi', icon: ShoppingCart },
 ]
 
