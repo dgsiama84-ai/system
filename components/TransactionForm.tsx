@@ -32,8 +32,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
   const selectedProduct = products.find(p => p.id === productId)
   const total = selectedProduct ? selectedProduct.price * quantity : 0
 
-  // ✅ Query ke 'product_recipes' (bukan 'product_ingredients')
-  // ✅ Field 'qty' (bukan 'qty_used')
+  // Cek stok saat produk dipilih
   async function handleProductChange(id: string) {
     setProductId(id)
     setStocks([])
@@ -42,15 +41,15 @@ export default function TransactionForm({ products }: { products: Product[] }) {
     setLoadingStock(true)
     const supabase = createClient()
     const { data } = await supabase
-      .from('product_recipes')
-      .select('qty, ingredients(name, unit, stocks(qty))')
+      .from('product_ingredients')
+      .select('qty_used, ingredients(name, unit, stocks(qty))')
       .eq('product_id', id)
 
     if (data) {
       const mapped = data.map((d: any) => ({
-        ingredient_name: d.ingredients?.name ?? '—',
-        unit: d.ingredients?.unit ?? '',
-        qty_used: d.qty, // qty dari recipe = berapa yang dipakai per transaksi
+        ingredient_name: d.ingredients?.name,
+        unit: d.ingredients?.unit,
+        qty_used: d.qty_used,
         qty: d.ingredients?.stocks?.qty ?? 0,
       }))
       setStocks(mapped)
@@ -83,6 +82,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
     setShowConfirm(true)
   }
 
+  // Cek apakah stok cukup untuk qty yang dipilih
   const stockWarnings = stocks.filter(s => s.qty < s.qty_used * quantity)
 
   return (
@@ -124,13 +124,13 @@ export default function TransactionForm({ products }: { products: Product[] }) {
 
         {/* Stok info */}
         {loadingStock && (
-          <p className="text-xs text-white/30 px-1">Mengecek stok...</p>
+          <p className="text-xs text-white/30">Mengecek stok...</p>
         )}
 
         {stocks.length > 0 && (
           <div className="rounded-xl border border-[#2e2e2e] overflow-hidden">
             <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 py-2 border-b border-[#2e2e2e]">
-              Info Stok
+              Stok Bahan
             </p>
             {stocks.map((s, i) => {
               const needed = s.qty_used * quantity
@@ -189,7 +189,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
         <button
           type="submit"
           disabled={loading || !productId || stockWarnings.length > 0}
-          className="btn-primary w-full text-base py-3.5"
+          className="btn-primary w-full text-base py-3.5 disabled:opacity-40"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -205,7 +205,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
 
       {/* Modal Konfirmasi */}
       {showConfirm && selectedProduct && (
-        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 px-4 pb-8">
+        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 px-4 pb-6">
           <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-2xl p-5 w-full max-w-sm space-y-4">
             <h3 className="font-bold text-lg">Konfirmasi Transaksi</h3>
             <div className="space-y-2 text-sm">
@@ -223,7 +223,10 @@ export default function TransactionForm({ products }: { products: Product[] }) {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleConfirm} className="btn-primary flex-1 py-3">
+              <button
+                onClick={handleConfirm}
+                className="btn-primary flex-1 py-3"
+              >
                 Ya, Catat
               </button>
               <button
