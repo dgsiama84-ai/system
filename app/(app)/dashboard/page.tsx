@@ -42,23 +42,28 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
 
   const { data: todayTx } = await supabase
     .from('transactions')
-    .select('total_price, quantity, created_by, products(name), profiles(email)')
+    .select('total_price, quantity, created_by, products(name), profiles(name, email)')
     .gte('created_at', today.toISOString())
 
   const totalSales = todayTx?.reduce((s: number, t: any) => s + (t.total_price ?? 0), 0) ?? 0
   const totalTx = todayTx?.length ?? 0
 
-  const staffMap: Record<string, { email: string; total: number; count: number }> = {}
+  const staffMap: Record<string, { name: string; total: number; count: number }> = {}
+
   for (const tx of todayTx ?? []) {
-    const email = tx.profiles?.email ?? tx.created_by
-    if (!staffMap[tx.created_by]) staffMap[tx.created_by] = { email, total: 0, count: 0 }
+    const name = tx.profiles?.name || tx.profiles?.email?.split('@')[0] || 'Staff'
+
+    if (!staffMap[tx.created_by]) {
+      staffMap[tx.created_by] = { name, total: 0, count: 0 }
+    }
+
     staffMap[tx.created_by].total += tx.total_price ?? 0
     staffMap[tx.created_by].count += 1
   }
 
   const { data: recentTx } = await supabase
     .from('transactions')
-    .select('id, quantity, total_price, created_at, products(name), profiles(email)')
+    .select('id, quantity, total_price, created_at, products(name), profiles(name, email)')
     .order('created_at', { ascending: false })
     .limit(10)
 
@@ -92,15 +97,19 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
 
       {Object.keys(staffMap).length > 0 && (
         <div className="card p-4">
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Penjualan per Staff</h2>
+          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+            Penjualan per Staff
+          </h2>
           <div className="space-y-0">
-            {Object.values(staffMap).map((s) => (
-              <div key={s.email} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
+            {Object.values(staffMap).map((s, i) => (
+              <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
                 <div>
-                  <p className="text-sm font-medium">{s.email.split('@')[0]}</p>
+                  <p className="text-sm font-medium">{s.name}</p>
                   <p className="text-xs text-white/30">{s.count} transaksi</p>
                 </div>
-                <p className="text-sm font-bold text-orange-400">{formatRupiah(s.total)}</p>
+                <p className="text-sm font-bold text-orange-400">
+                  {formatRupiah(s.total)}
+                </p>
               </div>
             ))}
           </div>
@@ -110,24 +119,33 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Clock size={14} className="text-white/40" />
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Transaksi Terbaru</h2>
+          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+            Transaksi Terbaru
+          </h2>
         </div>
         {!recentTx || recentTx.length === 0 ? (
           <p className="text-white/30 text-sm text-center py-6">Belum ada transaksi</p>
         ) : (
           <div className="space-y-0">
-            {recentTx.map((tx: any) => (
-              <div key={tx.id} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
-                <div>
-                  <p className="text-sm font-semibold">{tx.products?.name ?? '—'}</p>
-                  <p className="text-xs text-white/30">
-                    {tx.profiles?.email?.split('@')[0]} · {tx.quantity}x ·{' '}
-                    {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+            {recentTx.map((tx: any) => {
+              const name = tx.profiles?.name || tx.profiles?.email?.split('@')[0] || 'Staff'
+
+              return (
+                <div key={tx.id} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
+                  <div>
+                    <p className="text-sm font-semibold">{tx.products?.name ?? '—'}</p>
+                    <p className="text-xs text-white/30">
+                      {name} · {tx.quantity}x ·{' '}
+                      {new Date(tx.created_at).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold">{formatRupiah(tx.total_price)}</p>
                 </div>
-                <p className="text-sm font-bold">{formatRupiah(tx.total_price)}</p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -169,7 +187,6 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
         </p>
       </div>
 
-      {/* Profil */}
       <div className="card p-4 flex items-center gap-4">
         <div className="w-11 h-11 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
           <User size={20} className="text-orange-400" />
@@ -182,7 +199,6 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
         </span>
       </div>
 
-      {/* Stats hari ini */}
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card">
           <div className="flex items-center justify-between mb-2">
@@ -200,7 +216,6 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
         </div>
       </div>
 
-      {/* Transaksi hari ini */}
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Clock size={14} className="text-white/40" />
@@ -218,7 +233,10 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
                 <div>
                   <p className="text-sm font-semibold">{tx.products?.name ?? '—'}</p>
                   <p className="text-xs text-white/30">
-                    {tx.quantity}x · {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    {tx.quantity}x · {new Date(tx.created_at).toLocaleTimeString('id-ID', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </p>
                 </div>
                 <p className="text-sm font-bold text-orange-400">{formatRupiah(tx.total_price)}</p>
