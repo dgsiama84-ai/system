@@ -32,7 +32,6 @@ export default function TransactionForm({ products }: { products: Product[] }) {
   const selectedProduct = products.find(p => p.id === productId)
   const total = selectedProduct ? selectedProduct.price * quantity : 0
 
-  // Cek stok saat produk dipilih
   async function handleProductChange(id: string) {
     setProductId(id)
     setStocks([])
@@ -82,7 +81,6 @@ export default function TransactionForm({ products }: { products: Product[] }) {
     setShowConfirm(true)
   }
 
-  // Cek apakah stok cukup untuk qty yang dipilih
   const stockWarnings = stocks.filter(s => s.qty < s.qty_used * quantity)
 
   return (
@@ -101,7 +99,6 @@ export default function TransactionForm({ products }: { products: Product[] }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Product select */}
         <div>
           <label className="label">Produk</label>
           <div className="relative">
@@ -122,7 +119,6 @@ export default function TransactionForm({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        {/* Stok info */}
         {loadingStock && (
           <p className="text-xs text-white/30">Mengecek stok...</p>
         )}
@@ -153,7 +149,6 @@ export default function TransactionForm({ products }: { products: Product[] }) {
           </div>
         )}
 
-        {/* Quantity */}
         <div>
           <label className="label">Jumlah</label>
           <div className="flex items-center gap-3">
@@ -178,7 +173,6 @@ export default function TransactionForm({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        {/* Total */}
         {selectedProduct && (
           <div className="bg-orange-500/8 border border-orange-500/20 rounded-xl px-4 py-3 flex items-center justify-between">
             <span className="text-sm text-white/50">Total</span>
@@ -203,9 +197,9 @@ export default function TransactionForm({ products }: { products: Product[] }) {
         </button>
       </form>
 
-      {/* Modal Konfirmasi */}
+      {/* Modal Konfirmasi — z-[60] agar di atas navbar z-50 */}
       {showConfirm && selectedProduct && (
-        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 px-4 pb-6">
+        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-[60] px-4 pb-6">
           <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-2xl p-5 w-full max-w-sm space-y-4">
             <h3 className="font-bold text-lg">Konfirmasi Transaksi</h3>
             <div className="space-y-2 text-sm">
@@ -223,10 +217,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
               </div>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={handleConfirm}
-                className="btn-primary flex-1 py-3"
-              >
+              <button onClick={handleConfirm} className="btn-primary flex-1 py-3">
                 Ya, Catat
               </button>
               <button

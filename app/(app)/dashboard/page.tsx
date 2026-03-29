@@ -1,11 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { ShoppingBag, TrendingUp, Clock, User } from 'lucide-react'
+import { ShoppingBag, TrendingUp, Clock, User, Users } from 'lucide-react'
 
 function formatRupiah(n: number) {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency', currency: 'IDR', maximumFractionDigits: 0
   }).format(n)
+}
+
+function getTodayRange() {
+  const now = new Date()
+  const offset = 8 * 60 * 60 * 1000
+  const localNow = new Date(now.getTime() + offset)
+  
+  const start = new Date(
+    Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate(), 0, 0, 0, 0) - offset
+  ).toISOString()
+  
+  const end = new Date(
+    Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate(), 23, 59, 59, 999) - offset
+  ).toISOString()
+
+  return { start, end }
 }
 
 export default async function DashboardPage() {
@@ -37,33 +53,42 @@ export default async function DashboardPage() {
 }
 
 async function AdminDashboard({ supabase, adminName }: { supabase: any; adminName: string }) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const { start, end } = getTodayRange()
 
   const { data: todayTx } = await supabase
     .from('transactions')
-    .select('total_price, quantity, created_by, products(name), profiles(name, email)')
-    .gte('created_at', today.toISOString())
+    .select('total_price, quantity, created_by, products(name)')
+    .gte('created_at', start)
+    .lte('created_at', end)
+
+  const { data: allProfiles } = await supabase
+    .from('profiles')
+    .select('id, name, email')
+
+  const profileMap: Record<string, { name: string; email: string }> = {}
+  for (const p of allProfiles ?? []) {
+    profileMap[p.id] = { name: p.name, email: p.email }
+  }
 
   const totalSales = todayTx?.reduce((s: number, t: any) => s + (t.total_price ?? 0), 0) ?? 0
   const totalTx = todayTx?.length ?? 0
 
   const staffMap: Record<string, { name: string; total: number; count: number }> = {}
-
   for (const tx of todayTx ?? []) {
-    const name = tx.profiles?.name || tx.profiles?.email?.split('@')[0] || 'Staff'
-
+    const staffName = profileMap[tx.created_by]?.name || profileMap[tx.created_by]?.email?.split('@')[0] || 'Staff'
     if (!staffMap[tx.created_by]) {
-      staffMap[tx.created_by] = { name, total: 0, count: 0 }
+      staffMap[tx.created_by] = { name: staffName, total: 0, count: 0 }
     }
-
     staffMap[tx.created_by].total += tx.total_price ?? 0
     staffMap[tx.created_by].count += 1
   }
 
+  const staffList = Object.values(staffMap).sort((a, b) => b.total - a.total)
+  const topTotal = staffList[0]?.total ?? 1
+
   const { data: recentTx } = await supabase
     .from('transactions')
-    .select('id, quantity, total_price, created_at, products(name), profiles(name, email)')
+    .select('id, quantity, total_price, created_at, products(name), created_by')
     .order('created_at', { ascending: false })
     .limit(10)
 
@@ -74,7 +99,7 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
           Halo, {adminName} 👋
         </h1>
         <p className="text-white/40 text-sm mt-0.5">
-          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' })}
         </p>
       </div>
 
@@ -95,26 +120,29 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
         </div>
       </div>
 
-      {Object.keys(staffMap).length > 0 && (
-        <div className="card p-4">
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-            Penjualan per Staff
+      <div className="card p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Users size={14} className="text-white/40" />
+          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+            Penjualan per Staff Hari Ini
           </h2>
-          <div className="space-y-0">
-            {Object.values(staffMap).map((s, i) => (
-              <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{s.name}</p>
-                  <p className="text-xs text-white/30">{s.count} transaksi</p>
-                </div>
-                <p className="text-sm font-bold text-orange-400">
-                  {formatRupiah(s.total)}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
-      )}
+        {staffList.length === 0 ? (
+           <p className="text-white/20 text-sm text-center py-4">Belum ada transaksi hari ini</p>
+        ) : (
+          <div className="space-y-0">
+            {staffList.map((s, i) => (
+                   <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
+                    <div>
+                      <p className="text-sm font-semibold">{s.name}</p>
+                      <p className="text-xs text-white/30">{s.count} transaksi</p>
+                    </div>
+                   <p className="text-sm font-bold text-orange-400">{formatRupiah(s.total)}</p>
+                 </div>
+                 ))}
+              </div>
+          )}
+      </div>
 
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
@@ -128,18 +156,14 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
         ) : (
           <div className="space-y-0">
             {recentTx.map((tx: any) => {
-              const name = tx.profiles?.name || tx.profiles?.email?.split('@')[0] || 'Staff'
-
+              const staffName = profileMap[tx.created_by]?.name || profileMap[tx.created_by]?.email?.split('@')[0] || 'Staff'
               return (
                 <div key={tx.id} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
                   <div>
                     <p className="text-sm font-semibold">{tx.products?.name ?? '—'}</p>
                     <p className="text-xs text-white/30">
-                      {name} · {tx.quantity}x ·{' '}
-                      {new Date(tx.created_at).toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {staffName} · {tx.quantity}x ·{' '}
+                      {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
                     </p>
                   </div>
                   <p className="text-sm font-bold">{formatRupiah(tx.total_price)}</p>
@@ -160,17 +184,14 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
   name: string
   role: string
 }) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const { start, end } = getTodayRange()
 
   const { data: todayTx } = await supabase
     .from('transactions')
     .select('id, quantity, total_price, created_at, products(name)')
     .eq('created_by', userId)
-    .gte('created_at', today.toISOString())
-    .lt('created_at', tomorrow.toISOString())
+    .gte('created_at', start)
+    .lte('created_at', end)
     .order('created_at', { ascending: false })
 
   const todaySales = (todayTx ?? []).reduce((s: number, t: any) => s + (t.total_price ?? 0), 0)
@@ -183,7 +204,7 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
           Halo, {name} 👋
         </h1>
         <p className="text-white/40 text-sm mt-0.5">
-          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' })}
         </p>
       </div>
 
@@ -233,10 +254,7 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
                 <div>
                   <p className="text-sm font-semibold">{tx.products?.name ?? '—'}</p>
                   <p className="text-xs text-white/30">
-                    {tx.quantity}x · {new Date(tx.created_at).toLocaleTimeString('id-ID', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {tx.quantity}x · {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
                   </p>
                 </div>
                 <p className="text-sm font-bold text-orange-400">{formatRupiah(tx.total_price)}</p>
