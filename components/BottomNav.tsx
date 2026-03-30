@@ -33,6 +33,7 @@ export default function BottomNav({ role }: { role: string }) {
             <Link
               key={href}
               href={href}
+              prefetch={true}
               // ✅ Fix: tambah 'relative' agar span indicator absolute bisa terposisi dengan benar
               className={`relative flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all duration-150 ${
                 active ? 'text-orange-400' : 'text-white/30 hover:text-white/60'
