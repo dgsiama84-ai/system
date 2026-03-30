@@ -31,14 +31,15 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, email, name')
+    .select('role, email, name, code')
     .eq('id', user.id)
     .single()
 
   const name = (profile as any)?.name || profile?.email?.split('@')[0] || 'User'
+  const code = (profile as any)?.code || '' 
 
   if (profile?.role === 'admin') {
-    return <AdminDashboard supabase={supabase} adminName={name} />
+    return <AdminDashboard supabase={supabase} adminName={name} adminCode={code} />
   }
 
   return (
@@ -48,17 +49,19 @@ export default async function DashboardPage() {
       email={profile?.email ?? ''}
       name={name}
       role={profile?.role ?? 'staff'}
+      code={code}
     />
   )
 }
 
-async function AdminDashboard({ supabase, adminName }: { supabase: any; adminName: string }) {
+async function AdminDashboard({ supabase, adminName, adminCode }: { supabase: any; adminName: string; adminCode: string }) {
   const { start, end } = getTodayRange()
+
   const { data: todayExpenses } = await supabase
-  .from('expenses')
-  .select('amount')
-  .gte('created_at', start)
-  .lte('created_at', end)
+    .from('expenses')
+    .select('amount')
+    .gte('created_at', start)
+    .lte('created_at', end)
 
   const { data: todayTx } = await supabase
     .from('transactions')
@@ -77,7 +80,7 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
 
   const totalSales = todayTx?.reduce((s: number, t: any) => s + (t.total_price ?? 0), 0) ?? 0
   const totalExpenses =
-  todayExpenses?.reduce((s: number, e: any) => s + (e.amount ?? 0), 0) ?? 0
+    todayExpenses?.reduce((s: number, e: any) => s + (e.amount ?? 0), 0) ?? 0
   const totalTx = todayTx?.length ?? 0
 
   const staffMap: Record<string, { name: string; total: number; count: number }> = {}
@@ -91,32 +94,36 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
   }
 
   const staffList = Object.values(staffMap).sort((a, b) => b.total - a.total)
-  const topTotal = staffList[0]?.total ?? 1
 
-const { data: recentExpenses } = await supabase
-  .from('expenses')
-  .select('id, name, amount, created_at')
-  .order('created_at', { ascending: false })
-  .limit(5)
+  const { data: recentExpenses } = await supabase
+    .from('expenses')
+    .select('id, name, amount, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5)
 
-const { data: recentStock } = await supabase
-  .from('stock_movements')
-  .select('id, qty, created_at, ingredients(name)')
-  .eq('type', 'in')
-  .order('created_at', { ascending: false })
-  .limit(5)
+  const { data: recentStock } = await supabase
+    .from('stock_movements')
+    .select('id, qty, created_at, ingredients(name)')
+    .eq('type', 'in')
+    .order('created_at', { ascending: false })
+    .limit(5)
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
-          Halo, {adminName} 👋
+          Halo, {adminName} {adminCode && `(${adminCode})`} 👋
         </h1>
         <p className="text-white/40 text-sm mt-0.5">
-          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' })}
+          {new Date().toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'Asia/Singapore'
+          })}
         </p>
       </div>
-
       <div className="grid grid-cols-3 gap-3">
         <div className="stat-card">
           <div className="flex items-center justify-between mb-2">
@@ -234,12 +241,13 @@ const { data: recentStock } = await supabase
   )
 }
 
-async function StaffDashboard({ supabase, userId, email, name, role }: {
+async function StaffDashboard({ supabase, userId, email, name, role, code }: {
   supabase: any
   userId: string
   email: string
   name: string
   role: string
+  code: string
 }) {
   const { start, end } = getTodayRange()
 
@@ -258,7 +266,7 @@ async function StaffDashboard({ supabase, userId, email, name, role }: {
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
-          Halo, {name} 👋
+         Halo, {name} {code && `(${code})`} 👋
         </h1>
         <p className="text-white/40 text-sm mt-0.5">
           {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' })}
