@@ -118,8 +118,9 @@ async function handleConfirm() {
             <input
               name="name"
               type="text"
+              autoComplete='off'
               required
-              placeholder="Beli susu UHT 10 liter..."
+              placeholder="....."
               className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white"
             />
           </div>
