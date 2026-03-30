@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { ShoppingBag, TrendingUp, Clock, User, Users } from 'lucide-react'
+import { ShoppingBag, TrendingUp, Clock, User, Users, Wallet } from 'lucide-react'
 
 function formatRupiah(n: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -54,6 +54,11 @@ export default async function DashboardPage() {
 
 async function AdminDashboard({ supabase, adminName }: { supabase: any; adminName: string }) {
   const { start, end } = getTodayRange()
+  const { data: todayExpenses } = await supabase
+  .from('expenses')
+  .select('amount')
+  .gte('created_at', start)
+  .lte('created_at', end)
 
   const { data: todayTx } = await supabase
     .from('transactions')
@@ -71,6 +76,8 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
   }
 
   const totalSales = todayTx?.reduce((s: number, t: any) => s + (t.total_price ?? 0), 0) ?? 0
+  const totalExpenses =
+  todayExpenses?.reduce((s: number, e: any) => s + (e.amount ?? 0), 0) ?? 0
   const totalTx = todayTx?.length ?? 0
 
   const staffMap: Record<string, { name: string; total: number; count: number }> = {}
@@ -86,11 +93,18 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
   const staffList = Object.values(staffMap).sort((a, b) => b.total - a.total)
   const topTotal = staffList[0]?.total ?? 1
 
-  const { data: recentTx } = await supabase
-    .from('transactions')
-    .select('id, quantity, total_price, created_at, products(name), created_by')
-    .order('created_at', { ascending: false })
-    .limit(10)
+const { data: recentExpenses } = await supabase
+  .from('expenses')
+  .select('id, name, amount, created_at')
+  .order('created_at', { ascending: false })
+  .limit(5)
+
+const { data: recentStock } = await supabase
+  .from('stock_movements')
+  .select('id, qty, created_at, ingredients(name)')
+  .eq('type', 'in')
+  .order('created_at', { ascending: false })
+  .limit(5)
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-6">
@@ -103,7 +117,7 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="stat-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white/40 text-xs font-medium">Penjualan Hari Ini</span>
@@ -118,6 +132,15 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
           </div>
           <p className="text-xl font-bold text-blue-400">{totalTx}</p>
         </div>
+        <div className="stat-card">
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-white/40 text-xs font-medium">Pengeluaran</span>
+    <Wallet size={14} className="text-red-400" />
+  </div>
+  <p className="text-xl font-bold text-red-400">
+    {formatRupiah(totalExpenses)}
+  </p>
+</div>
       </div>
 
       <div className="card p-4">
@@ -148,30 +171,64 @@ async function AdminDashboard({ supabase, adminName }: { supabase: any; adminNam
         <div className="flex items-center gap-2 mb-3">
           <Clock size={14} className="text-white/40" />
           <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
-            Transaksi Terbaru
+            Aktivitas Terbaru
           </h2>
         </div>
-        {!recentTx || recentTx.length === 0 ? (
+        {!recentExpenses || recentExpenses.length === 0 ? (
           <p className="text-white/30 text-sm text-center py-6">Belum ada transaksi</p>
         ) : (
           <div className="space-y-0">
-            {recentTx.map((tx: any) => {
-              const staffName = profileMap[tx.created_by]?.name || profileMap[tx.created_by]?.email?.split('@')[0] || 'Staff'
-              return (
-                <div key={tx.id} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
-                  <div>
-                    <p className="text-sm font-semibold">{tx.products?.name ?? '—'}</p>
-                    <p className="text-xs text-white/30">
-                      {staffName} · {tx.quantity}x ·{' '}
-                      {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
-                    </p>
-                  </div>
-                  <p className="text-sm font-bold">{formatRupiah(tx.total_price)}</p>
-                </div>
-              )
-            })}
+            {recentExpenses.map((exp: any) => (
+  <div
+  
+    key={exp.id}
+    className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0"
+  >
+    <div>
+      <p className="text-sm font-semibold">{exp.name}</p>
+      <p className="text-xs text-white/30">
+        {new Date(exp.created_at).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Singapore',
+        })}
+      </p>
+    </div>
+
+    <p className="text-sm font-bold text-red-400">
+      {formatRupiah(exp.amount)}
+    </p>
+  </div>
+))}
           </div>
         )}
+        {recentStock && recentStock.length > 0 && (
+  <div className="mt-4 pt-3 border-t border-[#2e2e2e] space-y-0">
+    {recentStock.map((item: any) => (
+      <div
+        key={item.id}
+        className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0"
+      >
+        <div>
+          <p className="text-sm font-semibold">
+            Stok Masuk: {item.ingredients?.name ?? 'Bahan'}
+          </p>
+          <p className="text-xs text-white/30">
+            {new Date(item.created_at).toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'Asia/Singapore',
+            })}
+          </p>
+        </div>
+
+        <p className="text-sm font-bold text-green-400">
+          +{item.qty}
+        </p>
+      </div>
+    ))}
+  </div>
+)}
       </div>
     </div>
   )

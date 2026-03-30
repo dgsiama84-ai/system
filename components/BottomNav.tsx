@@ -11,7 +11,7 @@ const staffNav = [
 
 const adminNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transaksi', icon: ShoppingCart },
+  { href: '/transactions', label: 'Pengeluaran', icon: Receipt },
   { href: '/inventory', label: 'Stok', icon: Package },
   { href: '/opname', label: 'Opname', icon: ClipboardCheck },
   { href: '/reports', label: 'Laporan', icon: BarChart2 },

@@ -224,3 +224,24 @@ export async function submitOpname(ingredientId: string, realQty: number) {
   revalidatePath('/reports')
   return { success: true }
 }
+
+export async function addExpense(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') throw new Error('Admin only')
+
+  const { error } = await supabase.from('expenses').insert({
+    name: formData.get('name') as string,
+    amount: Number(formData.get('amount')),
+    category: formData.get('category') as string,
+    date: formData.get('date') as string,
+    created_by: user.id,
+  })
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/transactions')
+}

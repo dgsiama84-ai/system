@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TransactionForm from '@/components/TransactionForm'
+import ExpensesPanel from '@/components/ExpensesPanel'
 import { Product } from '@/types'
 
 export default async function TransactionsPage() {
@@ -8,10 +9,25 @@ export default async function TransactionsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+
+  // Admin → halaman pengeluaran
+  if (profile?.role === 'admin') {
+    const { data: expenses } = await supabase
+      .from('expenses')
+      .select('id, name, amount, category, date, created_at')
+      .order('date', { ascending: false })
+      .limit(30)
+
+    const totalExpenses = expenses?.reduce((s, e) => s + (e.amount ?? 0), 0) ?? 0
+
+    return <ExpensesPanel expenses={expenses ?? []} totalExpenses={totalExpenses} />
+  }
+
+  // Staff → form transaksi
   const { data: products } = await supabase
-    .from('products')
-    .select('id, name, price')
-    .order('name')
+    .from('products').select('id, name, price').order('name')
 
   const { data: recentTx } = await supabase
     .from('transactions')
@@ -29,7 +45,6 @@ export default async function TransactionsPage() {
 
       <TransactionForm products={products as Product[] ?? []} />
 
-      {/* My recent transactions */}
       {recentTx && recentTx.length > 0 && (
         <div className="card p-4">
           <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Transaksi Terakhir Saya</h2>
