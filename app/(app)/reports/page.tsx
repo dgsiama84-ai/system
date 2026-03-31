@@ -10,10 +10,11 @@ export default async function ReportsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const { data: profile } = await supabase
+    .from('profiles').select('role, location_id').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/transactions')
 
-  // Last 7 days
+  // Admin lihat semua lokasi
   const days: { date: string; label: string; sales: number; count: number; expenses: number }[] = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
@@ -27,8 +28,8 @@ export default async function ReportsPage() {
         .gte('created_at', d.toISOString())
         .lt('created_at', nextD.toISOString()),
       supabase.from('expenses').select('amount')
-  .gte('created_at', d.toISOString())
-  .lt('created_at', nextD.toISOString()),
+        .gte('created_at', d.toISOString())
+        .lt('created_at', nextD.toISOString()),
     ])
 
     days.push({
@@ -50,10 +51,9 @@ export default async function ReportsPage() {
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>Laporan</h1>
-        <p className="text-white/40 text-sm mt-0.5">7 hari terakhir</p>
+        <p className="text-white/40 text-sm mt-0.5">7 hari terakhir · Semua lokasi</p>
       </div>
 
-      {/* Summary cards */}
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="stat-card">
@@ -75,15 +75,12 @@ export default async function ReportsPage() {
           </div>
           <div className="stat-card">
             <p className="text-white/40 text-xs font-medium mb-1">Laba Bersih</p>
-            <p className={`text-lg font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {formatRupiah(totalProfit)}
-            </p>
+            <p className={`text-lg font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatRupiah(totalProfit)}</p>
             <p className="text-xs text-white/30 mt-0.5">7 hari terakhir</p>
           </div>
         </div>
       </div>
 
-      {/* Bar chart */}
       <div className="card p-4">
         <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">Penjualan Harian</h2>
         <div className="flex items-end gap-2 h-32">
@@ -93,10 +90,8 @@ export default async function ReportsPage() {
             return (
               <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full flex items-end justify-center" style={{ height: '96px' }}>
-                  <div
-                    className={`w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-orange-500' : 'bg-white/10'}`}
-                    style={{ height: `${Math.max(heightPct, 4)}%` }}
-                  />
+                  <div className={`w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-orange-500' : 'bg-white/10'}`}
+                    style={{ height: `${Math.max(heightPct, 4)}%` }} />
                 </div>
                 <span className="text-[9px] text-white/30 text-center leading-tight">{d.label.split(' ')[0]}</span>
               </div>
@@ -105,7 +100,6 @@ export default async function ReportsPage() {
         </div>
       </div>
 
-      {/* Daily table */}
       <div className="card p-4">
         <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Ringkasan Harian</h2>
         <div className="space-y-0">

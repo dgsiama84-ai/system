@@ -89,7 +89,7 @@ export default function StockInForm({ ingredients }: { ingredients: Ingredient[]
             <input
               name="note"
               type="text"
-              placeholder="Beli stok baru..."
+              placeholder="Stok baru..."
               className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white"
             />
           </div>

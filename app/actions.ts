@@ -18,15 +18,12 @@ export async function addStockIn(formData: FormData) {
   if (profile?.role !== 'admin') throw new Error('Admin only')
 
   const ingredient_id = formData.get('ingredient_id') as string
-
-  // 🔥 FIX DI SINI
+  const location_id = formData.get('location_id') as string
   const packQty = Number(formData.get('qty'))
   const qty = packQty * 240
-
   const note = formData.get('note') as string
 
-  // 🔥 VALIDASI
-  if (!ingredient_id || !packQty || packQty <= 0) {
+  if (!ingredient_id || !location_id || !packQty || packQty <= 0) {
     throw new Error('Data tidak valid')
   }
 
@@ -36,6 +33,7 @@ export async function addStockIn(formData: FormData) {
     type: 'in',
     note: note || 'Stok masuk manual',
     created_by: user.id,
+    location_id,
   })
 
   if (error) throw new Error(error.message)
