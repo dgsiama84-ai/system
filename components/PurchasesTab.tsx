@@ -180,16 +180,16 @@ export default function PurchasesTab({
                   className="col-span-2 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
                   />
                   <div className="relative w-full">
-  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
-    Rp
-  </span>
-  <input
-    type="number"
-    value={item.amount || ''}
-    onChange={e => updateItem(idx, 'amount', Number(e.target.value))}
-    className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl pl-10 pr-3 py-2 text-sm text-white"
-  />
-</div>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
+                    Rp
+                    </span>
+                    <input
+                    type="number"
+                    value={item.amount || ''}
+                    onChange={e => updateItem(idx, 'amount', Number(e.target.value))}
+                    className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl pl-10 pr-3 py-2 text-sm text-white"
+                    />
+                    </div>
                   {items.length > 1 && (
                     <button onClick={() => removeItem(idx)} type="button" className="text-red-400">
                       <Trash2 size={16} />
@@ -230,25 +230,26 @@ export default function PurchasesTab({
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 items-end">
                     <div>
-                      <label className="text-[12px] text-white/30 block mb-1">Pack Dipesan</label>
+                      <label className="text-[12px] text-white/30 block mb-1">Jumlah Dipesan</label>
                       <input type="number" min="0" value={c.pack_ordered || ''}
                         onChange={e => updateContribution(idx, 'pack_ordered', Number(e.target.value))}
                         className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white" />
                     </div>
-                    <div>
-                      <label className="text-[12px] text-white/30 block mb-1">Bayar (Rp)</label>
-                      <input type="number" min="0" value={c.amount_paid || ''}
-                        onChange={e => updateContribution(idx, 'amount_paid', Number(e.target.value))}
-                        className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white" />
-                    </div>
+                    <div className="relative">
+  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">
+    Rp
+  </span>
+  <input
+    type="number"
+    min="0"
+    value={c.amount_paid || ''}
+    onChange={e => updateContribution(idx, 'amount_paid', Number(e.target.value))}
+    className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg pl-8 pr-2 py-1.5 text-sm text-white"
+  />
+</div>
                   </div>
-                  {c.pack_ordered > c.pack_paid && (
-                    <p className="text-[10px] text-yellow-400">
-                      ⚠ Utang {c.pack_ordered - c.pack_paid} pack
-                    </p>
-                  )}
                 </div>
               ))}
             </div>
