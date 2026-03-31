@@ -173,20 +173,16 @@ export default function PurchasesTab({
             </div>
             <div className="space-y-2">
               {items.map((item, idx) => (
-                <div key={idx} className="flex gap-2">
+                <div key={idx} className="grid grid-cols-3 gap-2">
                   <input
-                    type="text"
-                    placeholder="Keterangan (misal: Stok 30 pack)"
-                    value={item.label}
-                    onChange={e => updateItem(idx, 'label', e.target.value)}
-                    className="flex-1 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
+                  type="text"
+                  placeholder="Keterangan..."
+                  className="col-span-2 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
                   />
                   <input
-                    type="number"
-                    placeholder="Rp"
-                    value={item.amount || ''}
-                    onChange={e => updateItem(idx, 'amount', Number(e.target.value))}
-                    className="w-28 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
+                  type="number"
+                  placeholder="Rp"
+                  className="col-span-1 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
                   />
                   {items.length > 1 && (
                     <button onClick={() => removeItem(idx)} type="button" className="text-red-400">
