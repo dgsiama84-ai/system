@@ -13,14 +13,22 @@ export default async function TransactionsPage() {
     .from('profiles').select('role, location_id').eq('id', user.id).single()
 
   if (profile?.role === 'admin') {
-    const { data: expenses } = await supabase
-      .from('expenses')
-      .select('id, name, amount, category, date, created_at, locations(name)')
-      .order('date', { ascending: false })
-      .limit(30)
+    const [{ data: expenses }, { data: locations }] = await Promise.all([
+      supabase.from('expenses')
+        .select('id, name, amount, category, date, created_at, locations(name)')
+        .order('date', { ascending: false })
+        .limit(30),
+      supabase.from('locations').select('id, name'),
+    ])
 
     const totalExpenses = expenses?.reduce((s, e) => s + (e.amount ?? 0), 0) ?? 0
-    return <ExpensesPanel expenses={expenses ?? []} totalExpenses={totalExpenses} />
+    return (
+      <ExpensesPanel
+        expenses={expenses ?? []}
+        totalExpenses={totalExpenses}
+        locations={locations ?? []}
+      />
+    )
   }
 
   const { data: products } = await supabase

@@ -102,6 +102,9 @@ export async function addExpense(formData: FormData) {
   if (!profile) throw new Error('Unauthorized')
   if (profile.role !== 'admin') throw new Error('Admin only')
 
+  const location_id = formData.get('location_id') as string
+  if (!location_id) throw new Error('Lokasi wajib dipilih')
+
   const { error } = await supabase.from('expenses').insert({
     name: formData.get('name') as string,
     amount: Number(formData.get('amount')),
@@ -109,7 +112,7 @@ export async function addExpense(formData: FormData) {
     date: formData.get('date') as string,
     note: (formData.get('note') as string) || null,
     created_by: profile.uid,
-    location_id: profile.location_id,
+    location_id,
   })
 
   if (error) throw new Error(error.message)
