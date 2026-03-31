@@ -159,3 +159,46 @@ export async function submitOpname(ingredientId: string, realQty: number) {
   revalidatePath('/reports')
   return { success: true }
 }
+
+// --- PURCHASES ---
+export async function addPurchase(formData: FormData) {
+  const supabase = await createClient()
+  const profile = await getUserProfile(supabase)
+  if (!profile) throw new Error('Unauthorized')
+  if (profile.role !== 'admin') throw new Error('Admin only')
+
+  const date = formData.get('date') as string
+  const note = (formData.get('note') as string) || null
+
+  const items = JSON.parse(formData.get('items') as string) as { label: string; amount: number }[]
+  const contributions = JSON.parse(formData.get('contributions') as string) as {
+    location_id: string
+    pack_ordered: number
+    pack_paid: number
+    amount_paid: number
+  }[]
+
+  if (!items.length) throw new Error('Minimal 1 item biaya')
+
+  const { data: purchase, error: purchaseError } = await supabase
+    .from('purchases')
+    .insert({ date, note, created_by: profile.uid })
+    .select('id')
+    .single()
+
+  if (purchaseError) throw new Error(purchaseError.message)
+
+  const { error: itemsError } = await supabase.from('purchase_items').insert(
+    items.map(i => ({ purchase_id: purchase.id, label: i.label, amount: i.amount }))
+  )
+  if (itemsError) throw new Error(itemsError.message)
+
+  if (contributions.length > 0) {
+    const { error: contribError } = await supabase.from('purchase_contributions').insert(
+      contributions.map(c => ({ purchase_id: purchase.id, ...c }))
+    )
+    if (contribError) throw new Error(contribError.message)
+  }
+
+  revalidatePath('/transactions')
+}
