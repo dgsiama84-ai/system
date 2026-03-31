@@ -124,31 +124,31 @@ async function AdminDashboard({ supabase, adminName, adminCode }: { supabase: an
           })}
         </p>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/40 text-xs font-medium">Penjualan Hari Ini</span>
-            <TrendingUp size={14} className="text-orange-400" />
-          </div>
-          <p className="text-xl font-bold text-orange-400">{formatRupiah(totalSales)}</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/40 text-xs font-medium">Transaksi</span>
-            <ShoppingBag size={14} className="text-blue-400" />
-          </div>
-          <p className="text-xl font-bold text-blue-400">{totalTx}</p>
-        </div>
-        <div className="stat-card">
-  <div className="flex items-center justify-between mb-2">
-    <span className="text-white/40 text-xs font-medium">Pengeluaran</span>
-    <Wallet size={14} className="text-red-400" />
-  </div>
-  <p className="text-xl font-bold text-red-400">
-    {formatRupiah(totalExpenses)}
-  </p>
-</div>
+      <div className="space-y-3">
+  <div className="grid grid-cols-2 gap-3">
+    <div className="stat-card">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/40 text-xs font-medium">Penjualan Hari Ini</span>
+        <TrendingUp size={14} className="text-orange-400" />
       </div>
+      <p className="text-xl font-bold text-orange-400">{formatRupiah(totalSales)}</p>
+    </div>
+    <div className="stat-card">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/40 text-xs font-medium">Transaksi</span>
+        <ShoppingBag size={14} className="text-blue-400" />
+      </div>
+      <p className="text-xl font-bold text-blue-400">{totalTx}</p>
+    </div>
+  </div>
+  <div className="stat-card">
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-white/40 text-xs font-medium">Pengeluaran Hari Ini</span>
+      <Wallet size={14} className="text-red-400" />
+    </div>
+    <p className="text-xl font-bold text-red-400">{formatRupiah(totalExpenses)}</p>
+  </div>
+</div>
 
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-4">
@@ -278,7 +278,8 @@ async function StaffDashboard({ supabase, userId, email, name, role, code }: {
           <User size={20} className="text-orange-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm truncate">{email}</p>
+          <p className="font-bold text-sm truncate"> {name} </p>
+          <p className="font-bold text-sm truncate"> {email} </p>
         </div>
         <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-white/5 text-white/40 border border-white/10 uppercase tracking-wide shrink-0">
           {role}
