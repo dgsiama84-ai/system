@@ -32,7 +32,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
   const selectedProduct = products.find(p => p.id === productId)
   const total = selectedProduct ? selectedProduct.price * quantity : 0
 
-  async function handleProductChange(id: string) {
+async function handleProductChange(id: string) {
   setProductId(id)
   setStocks([])
   if (!id) return
@@ -164,7 +164,7 @@ export default function TransactionForm({ products }: { products: Product[] }) {
                   </div>
                   <div className="text-right">
                     <span className={`text-sm font-bold ${isLow ? 'text-red-400' : 'text-green-400'}`}>
-                      {s.qty} {s.unit}
+                     Stok {s.qty} {s.unit}
                     </span>
                     <p className="text-[10px] text-white/30">butuh {needed} {s.unit}</p>
                   </div>
