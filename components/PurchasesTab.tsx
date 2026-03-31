@@ -179,11 +179,17 @@ export default function PurchasesTab({
                   placeholder="Keterangan..."
                   className="col-span-2 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
                   />
-                  <input
-                  type="number"
-                  placeholder="Rp"
-                  className="col-span-1 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
-                  />
+                  <div className="relative w-full">
+  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
+    Rp
+  </span>
+  <input
+    type="number"
+    value={item.amount || ''}
+    onChange={e => updateItem(idx, 'amount', Number(e.target.value))}
+    className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl pl-10 pr-3 py-2 text-sm text-white"
+  />
+</div>
                   {items.length > 1 && (
                     <button onClick={() => removeItem(idx)} type="button" className="text-red-400">
                       <Trash2 size={16} />
