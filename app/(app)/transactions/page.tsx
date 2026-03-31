@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TransactionForm from '@/components/TransactionForm'
-import ExpensesPanel from '@/components/ExpensesPanel'
+import PurchasesTab from '@/components/PurchasesTab'
 import { Product } from '@/types'
 
 export default async function TransactionsPage() {
@@ -14,11 +14,7 @@ export default async function TransactionsPage() {
 
   // Admin → halaman pengeluaran
   if (profile?.role === 'admin') {
-  const [{ data: expenses }, { data: locations }, { data: purchases }] = await Promise.all([
-    supabase.from('expenses')
-      .select('id, name, amount, category, date, created_at, locations(name)')
-      .order('date', { ascending: false })
-      .limit(30),
+  const [{ data: locations }, { data: purchases }] = await Promise.all([
     supabase.from('locations').select('id, name'),
     supabase.from('purchases')
       .select('id, date, note, purchase_items(label, amount), purchase_contributions(pack_ordered, pack_paid, amount_paid, locations(name))')
@@ -26,13 +22,10 @@ export default async function TransactionsPage() {
       .limit(30),
   ])
 
-  const totalExpenses = expenses?.reduce((s, e) => s + (e.amount ?? 0), 0) ?? 0
   return (
-    <ExpensesPanel
-      expenses={expenses ?? [] as any}
-      totalExpenses={totalExpenses}
-      locations={locations ?? [] as any}
-      purchases={purchases ?? [] as any}
+    <PurchasesTab
+      purchases={(purchases ?? []) as any}
+      locations={(locations ?? []) as any}
     />
   )
 }

@@ -117,9 +117,13 @@ export default function PurchasesTab({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button
+    <div className="px-4 py-5 max-w-2xl mx-auto space-y-4">
+  <div className="flex items-center justify-between">
+    <div>
+      <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>Pembelian Stok</h1>
+      <p className="text-white/40 text-sm mt-0.5">Pengadaan & kontribusi lokasi</p>
+    </div>
+    <button
           onClick={() => setOpen(!open)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
           style={{ background: '#f97316' }}
@@ -224,21 +228,15 @@ export default function PurchasesTab({
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-white/30 block mb-1">Pack Dipesan</label>
+                      <label className="text-[12px] text-white/30 block mb-1">Pack Dipesan</label>
                       <input type="number" min="0" value={c.pack_ordered || ''}
                         onChange={e => updateContribution(idx, 'pack_ordered', Number(e.target.value))}
                         className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white" />
                     </div>
                     <div>
-                      <label className="text-[10px] text-white/30 block mb-1">Pack Dibayar</label>
-                      <input type="number" min="0" value={c.pack_paid || ''}
-                        onChange={e => updateContribution(idx, 'pack_paid', Number(e.target.value))}
-                        className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-white/30 block mb-1">Bayar (Rp)</label>
+                      <label className="text-[12px] text-white/30 block mb-1">Bayar (Rp)</label>
                       <input type="number" min="0" value={c.amount_paid || ''}
                         onChange={e => updateContribution(idx, 'amount_paid', Number(e.target.value))}
                         className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white" />

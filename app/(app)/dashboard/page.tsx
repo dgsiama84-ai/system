@@ -50,19 +50,20 @@ async function AdminDashboard({ supabase, adminName, adminCode }: { supabase: an
   const { start, end } = getTodayRange()
 
   // Admin lihat semua lokasi
-  const [{ data: todayTx }, { data: todayExpenses }, { data: allProfiles }, { data: recentExpenses }, { data: recentStock }] = await Promise.all([
-    supabase.from('transactions').select('total_price, quantity, created_by, products(name), locations(name)').gte('created_at', start).lte('created_at', end),
-    supabase.from('expenses').select('amount').gte('created_at', start).lte('created_at', end),
-    supabase.from('profiles').select('id, name, email'),
-    supabase.from('expenses').select('id, name, amount, created_at, locations(name)').order('created_at', { ascending: false }).limit(5),
-    supabase.from('stock_movements').select('id, qty, created_at, ingredients(name), locations(name)').eq('type', 'in').order('created_at', { ascending: false }).limit(5),
-  ])
+  const [{ data: todayTx }, { data: todayPurchases }, { data: allProfiles }, { data: recentPurchases }, { data: recentStock }] = await Promise.all([
+  supabase.from('transactions').select('total_price, quantity, created_by, products(name), locations(name)').gte('created_at', start).lte('created_at', end),
+  supabase.from('purchases').select('purchase_items(amount)').gte('created_at', start).lte('created_at', end),
+  supabase.from('profiles').select('id, name, email'),
+  supabase.from('purchases').select('id, date, note, created_at, purchase_items(label, amount), purchase_contributions(amount_paid, locations(name))').order('created_at', { ascending: false }).limit(5),
+  supabase.from('stock_movements').select('id, qty, created_at, ingredients(name), locations(name)').eq('type', 'in').order('created_at', { ascending: false }).limit(5),
+])
 
   const profileMap: Record<string, { name: string; email: string }> = {}
   for (const p of allProfiles ?? []) profileMap[p.id] = { name: p.name, email: p.email }
 
   const totalSales = todayTx?.reduce((s: number, t: any) => s + (t.total_price ?? 0), 0) ?? 0
-  const totalExpensesAmt = todayExpenses?.reduce((s: number, e: any) => s + (e.amount ?? 0), 0) ?? 0
+  const totalExpensesAmt = todayPurchases?.reduce((s: number, p: any) =>
+  s + (p.purchase_items?.reduce((ss: number, i: any) => ss + (i.amount ?? 0), 0) ?? 0), 0) ?? 0
   const totalTx = todayTx?.length ?? 0
 
   const staffMap: Record<string, { name: string; total: number; count: number }> = {}
@@ -141,24 +142,36 @@ async function AdminDashboard({ supabase, adminName, adminCode }: { supabase: an
           <Clock size={14} className="text-white/40" />
           <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Aktivitas Terbaru</h2>
         </div>
-        {!recentExpenses || recentExpenses.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-6">Belum ada pengeluaran</p>
-        ) : (
-          <div className="space-y-0">
-            {recentExpenses.map((exp: any) => (
-              <div key={exp.id} className="flex items-center justify-between py-2.5 border-b border-[#2e2e2e] last:border-0">
-                <div>
-                  <p className="text-sm font-semibold">{exp.name}</p>
-                  <p className="text-xs text-white/30">
-                    {exp.locations?.name && <span className="text-orange-400/60">{exp.locations.name} · </span>}
-                    {new Date(exp.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
-                  </p>
-                </div>
-                <p className="text-sm font-bold text-red-400">{formatRupiah(exp.amount)}</p>
-              </div>
-            ))}
+        {!recentPurchases || recentPurchases.length === 0 ? (
+  <p className="text-white/30 text-sm text-center py-6">Belum ada pembelian</p>
+) : (
+  <div className="space-y-0">
+    {recentPurchases.map((p: any) => {
+      const total = p.purchase_items?.reduce((s: number, i: any) => s + (i.amount ?? 0), 0) ?? 0
+      const totalBayar = p.purchase_contributions?.reduce((s: number, c: any) => s + (c.amount_paid ?? 0), 0) ?? 0
+      const adminTanggung = total - totalBayar
+      return (
+        <div key={p.id} className="py-2.5 border-b border-[#2e2e2e] last:border-0">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">
+              {p.purchase_items?.[0]?.label ?? 'Pembelian Stok'}
+              {p.purchase_items?.length > 1 && ` +${p.purchase_items.length - 1} item`}
+            </p>
+            <p className="text-sm font-bold text-blue-400">{formatRupiah(total)}</p>
           </div>
-        )}
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xs text-white/30">
+              {new Date(p.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
+            </p>
+            {adminTanggung > 0 && (
+              <p className="text-xs text-red-400">admin tanggung {formatRupiah(adminTanggung)}</p>
+            )}
+          </div>
+        </div>
+      )
+    })}
+  </div>
+)}
         {recentStock && recentStock.length > 0 && (
           <div className="mt-4 pt-3 border-t border-[#2e2e2e] space-y-0">
             {recentStock.map((item: any) => (
