@@ -33,28 +33,53 @@ export default function TransactionForm({ products }: { products: Product[] }) {
   const total = selectedProduct ? selectedProduct.price * quantity : 0
 
   async function handleProductChange(id: string) {
-    setProductId(id)
-    setStocks([])
-    if (!id) return
+  setProductId(id)
+  setStocks([])
+  if (!id) return
 
-    setLoadingStock(true)
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('product_ingredients')
-      .select('qty_used, ingredients(name, unit, stocks(qty))')
-      .eq('product_id', id)
+  setLoadingStock(true)
+  const supabase = createClient()
 
-    if (data) {
-      const mapped = data.map((d: any) => ({
+  // 1. Ambil user location_id dulu
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('location_id')
+    .eq('id', user.id)
+    .single()
+
+  const locationId = profile?.location_id
+
+  // 2. Ambil ingredients dari produk
+  const { data } = await supabase
+    .from('product_ingredients')
+    .select('qty_used, ingredients(id, name, unit)')
+    .eq('product_id', id)
+
+  if (data && locationId) {
+    // 3. Fetch stok per ingredient untuk lokasi ini
+    const mapped = await Promise.all(data.map(async (d: any) => {
+      const { data: stockData } = await supabase
+        .from('stocks')
+        .select('qty')
+        .eq('ingredient_id', d.ingredients?.id)
+        .eq('location_id', locationId)
+        .single()
+
+      return {
         ingredient_name: d.ingredients?.name,
         unit: d.ingredients?.unit,
         qty_used: d.qty_used,
-        qty: d.ingredients?.stocks?.qty ?? 0,
-      }))
-      setStocks(mapped)
-    }
-    setLoadingStock(false)
+        qty: stockData?.qty ?? 0,
+      }
+    }))
+    setStocks(mapped)
   }
+
+  setLoadingStock(false)
+}
 
   async function handleConfirm() {
     setShowConfirm(false)
