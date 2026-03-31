@@ -11,15 +11,21 @@ function formatRupiah(n: number) {
 }
 
 const CATEGORIES = [
-  { value: 'bahan_baku', label: 'Bahan Baku' },
-  { value: 'transportasi', label: 'Transportasi' },
-  { value: 'lainnya', label: 'Lainnya' },
+  { value: 'camelo', label: 'Camelo (Produk)' },
+  { value: 'air', label: 'Air Galon' },
+  { value: 'lem', label: 'Lem' },
+  { value: 'kemasan', label: 'Kemasan (Plastik/Staples)' },
+  { value: 'transport', label: 'Transportasi' },
+  { value: 'alat', label: 'Peralatan' },
 ]
 
 const categoryColors: Record<string, string> = {
-  bahan_baku: 'text-blue-400 bg-blue-400/10',
-  transportasi: 'text-yellow-400 bg-yellow-400/10',
-  lainnya: 'text-white/40 bg-white/5',
+  camelo: 'text-blue-400 bg-blue-400/10',
+  air: 'text-cyan-400 bg-cyan-400/10',
+  lem: 'text-purple-400 bg-purple-400/10',
+  kemasan: 'text-green-400 bg-green-400/10',
+  transport: 'text-yellow-400 bg-yellow-400/10',
+  alat: 'text-pink-400 bg-pink-400/10',
 }
 
 interface Expense {
@@ -120,7 +126,7 @@ async function handleConfirm() {
               type="text"
               autoComplete='off'
               required
-              placeholder="....."
+              placeholder="Beli..."
               className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white"
             />
           </div>
