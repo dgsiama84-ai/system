@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ShoppingBag, Trash2 } from 'lucide-react'
+import { Plus, ShoppingBag, Trash2, AlertCircle } from 'lucide-react'
 import { addPurchase } from '@/lib/actions'
 
 function formatRupiah(n: number) {
@@ -17,9 +17,9 @@ interface PurchaseItem {
 
 interface Contribution {
   location_id: string
-  pack_ordered: number
-  pack_paid: number
-  amount_paid: number
+  pack_ordered: number | ''
+  pack_paid: number | ''
+  amount_paid: number | ''
 }
 
 interface Purchase {
@@ -40,6 +40,10 @@ interface Location {
   name: string
 }
 
+function getValidItems(items: PurchaseItem[]) {
+  return items.filter(i => i.label.trim() !== '' && i.amount > 0)
+}
+
 export default function PurchasesTab({
   purchases,
   locations,
@@ -53,14 +57,14 @@ export default function PurchasesTab({
   const [success, setSuccess] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
-  // Form state
   const [items, setItems] = useState<PurchaseItem[]>([{ label: '', amount: 0 }])
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [note, setNote] = useState('')
 
-  const totalBiaya = items.reduce((s, i) => s + (i.amount || 0), 0)
-  const totalKontribusi = contributions.reduce((s, c) => s + (c.amount_paid || 0), 0)
+  const validItems = getValidItems(items)
+  const totalBiaya = items.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+  const totalKontribusi = contributions.reduce((s, c) => s + (Number(c.amount_paid) || 0), 0)
   const tanggunganAdmin = totalBiaya - totalKontribusi
 
   function addItem() {
@@ -68,6 +72,7 @@ export default function PurchasesTab({
   }
 
   function removeItem(idx: number) {
+    if (items.length === 1) return
     setItems(items.filter((_, i) => i !== idx))
   }
 
@@ -79,9 +84,9 @@ export default function PurchasesTab({
     if (locations.length === 0) return
     setContributions([...contributions, {
       location_id: locations[0].id,
-      pack_ordered: 0,
-      pack_paid: 0,
-      amount_paid: 0,
+      pack_ordered: '',
+      pack_paid: '',
+      amount_paid: '',
     }])
   }
 
@@ -93,6 +98,15 @@ export default function PurchasesTab({
     setContributions(contributions.map((c, i) => i === idx ? { ...c, [field]: value } : c))
   }
 
+  function handlePreSubmit() {
+    if (validItems.length === 0) {
+      setError('Minimal 1 item biaya harus diisi')
+      return
+    }
+    setError('')
+    setShowConfirm(true)
+  }
+
   async function handleConfirm() {
     setShowConfirm(false)
     setLoading(true)
@@ -101,14 +115,22 @@ export default function PurchasesTab({
       const formData = new FormData()
       formData.set('date', date)
       formData.set('note', note)
-      formData.set('items', JSON.stringify(items.filter(i => i.label && i.amount > 0)))
-      formData.set('contributions', JSON.stringify(contributions))
+      formData.set('items', JSON.stringify(validItems))
+      // Normalize contributions — pack_ordered & pack_paid default ke 0 kalau kosong
+      const normalizedContributions = contributions.map(c => ({
+        location_id: c.location_id,
+        pack_ordered: Number(c.pack_ordered) || 0,
+        pack_paid: Number(c.pack_paid) || 0,
+        amount_paid: Number(c.amount_paid) || 0,
+      }))
+      formData.set('contributions', JSON.stringify(normalizedContributions))
       await addPurchase(formData)
       setSuccess(true)
       setOpen(false)
       setItems([{ label: '', amount: 0 }])
       setContributions([])
       setNote('')
+      setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -118,13 +140,13 @@ export default function PurchasesTab({
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-4">
-  <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>Pembelian Stok</h1>
-      <p className="text-white/40 text-sm mt-0.5">Pengadaan & kontribusi lokasi</p>
-    </div>
-    <button
-          onClick={() => setOpen(!open)}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>Pembelian Stok</h1>
+          <p className="text-white/40 text-sm mt-0.5">Pengadaan & kontribusi lokasi</p>
+        </div>
+        <button
+          onClick={() => { setOpen(!open); setError('') }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
           style={{ background: '#f97316' }}
         >
@@ -145,8 +167,14 @@ export default function PurchasesTab({
       </div>
 
       {success && (
-        <div className="p-3 rounded-xl bg-green-500/10 text-green-400 text-sm">
-          Pembelian berhasil dicatat
+        <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+          ✓ Pembelian berhasil dicatat
+        </div>
+      )}
+
+      {error && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          ⚠️ {error}
         </div>
       )}
 
@@ -158,8 +186,12 @@ export default function PurchasesTab({
           {/* Tanggal */}
           <div>
             <label className="text-xs text-white/40 mb-1 block">Tanggal</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white" />
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white"
+            />
           </div>
 
           {/* Items biaya */}
@@ -173,26 +205,27 @@ export default function PurchasesTab({
             </div>
             <div className="space-y-2">
               {items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-3 gap-2">
+                <div key={idx} className="flex items-center gap-2">
                   <input
-                  type="text"
-                  placeholder="Keterangan..."
-                  className="col-span-2 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
+                    type="text"
+                    placeholder="Keterangan..."
+                    value={item.label}
+                    onChange={e => updateItem(idx, 'label', e.target.value)}
+                    className="flex-1 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2 text-sm text-white"
                   />
-                  <div className="relative w-full">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
-                    Rp
-                    </span>
+                  <div className="relative w-32 shrink-0">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">Rp</span>
                     <input
-                    type="number"
-                    value={item.amount || ''}
-                    onChange={e => updateItem(idx, 'amount', Number(e.target.value))}
-                    className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl pl-10 pr-3 py-2 text-sm text-white"
+                      type="number"
+                      min="0"
+                      value={item.amount || ''}
+                      onChange={e => updateItem(idx, 'amount', Number(e.target.value))}
+                      className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl pl-8 pr-3 py-2 text-sm text-white"
                     />
-                    </div>
+                  </div>
                   {items.length > 1 && (
-                    <button onClick={() => removeItem(idx)} type="button" className="text-red-400">
-                      <Trash2 size={16} />
+                    <button onClick={() => removeItem(idx)} type="button" className="text-red-400 shrink-0">
+                      <Trash2 size={15} />
                     </button>
                   )}
                 </div>
@@ -230,60 +263,76 @@ export default function PurchasesTab({
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 items-end">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[12px] text-white/30 block mb-1">Jumlah Dipesan</label>
-                      <input type="number" min="0" value={c.pack_ordered || ''}
-                        onChange={e => updateContribution(idx, 'pack_ordered', Number(e.target.value))}
-                        className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white" />
+                      <label className="text-[11px] text-white/30 block mb-1">
+                        Jumlah Dipesan
+                        <span className="text-white/20 ml-1">(opsional)</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={c.pack_ordered}
+                        onChange={e => updateContribution(idx, 'pack_ordered', e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2 py-1.5 text-sm text-white"
+                      />
                     </div>
-                    <div className="relative">
-  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">
-    Rp
-  </span>
-  <input
-    type="number"
-    min="0"
-    value={c.amount_paid || ''}
-    onChange={e => updateContribution(idx, 'amount_paid', Number(e.target.value))}
-    className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg pl-8 pr-2 py-1.5 text-sm text-white"
-  />
-</div>
+                    <div>
+                      <label className="text-[11px] text-white/30 block mb-1">Bayar</label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-xs">Rp</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={c.amount_paid}
+                          onChange={e => updateContribution(idx, 'amount_paid', e.target.value)}
+                          placeholder="0"
+                          className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg pl-7 pr-2 py-1.5 text-sm text-white"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Tanggungan admin */}
-            <div className="flex justify-between mt-3 px-1 border-t border-[#2e2e2e] pt-3">
-              <span className="text-xs text-white/40">Ditanggung Admin</span>
-              <span className={`text-sm font-bold ${tanggunganAdmin > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                {formatRupiah(tanggunganAdmin)}
-              </span>
-            </div>
+            {contributions.length > 0 && (
+              <div className="flex justify-between mt-3 px-1 border-t border-[#2e2e2e] pt-3">
+                <span className="text-xs text-white/40">Ditanggung Admin</span>
+                <span className={`text-sm font-bold ${tanggunganAdmin > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {formatRupiah(tanggunganAdmin)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Catatan */}
           <div>
             <label className="text-xs text-white/40 mb-1 block">Catatan (opsional)</label>
-            <input type="text" value={note} onChange={e => setNote(e.target.value)}
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
               placeholder="..."
-              className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white" />
+              className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-white"
+            />
           </div>
-
-          {error && <p className="text-red-400 text-sm">{error}</p>}
 
           <div className="flex gap-2">
             <button
-              onClick={() => setShowConfirm(true)}
+              onClick={handlePreSubmit}
               disabled={loading || totalBiaya === 0}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
               style={{ background: '#f97316' }}
             >
               Lanjut
             </button>
-            <button onClick={() => setOpen(false)} type="button"
-              className="px-4 py-2.5 rounded-xl text-sm bg-[#2e2e2e]">
+            <button
+              onClick={() => setOpen(false)}
+              type="button"
+              className="px-4 py-2.5 rounded-xl text-sm bg-[#2e2e2e]"
+            >
               Batal
             </button>
           </div>
@@ -310,7 +359,6 @@ export default function PurchasesTab({
                     <span className="text-sm font-bold">{formatRupiah(total)}</span>
                   </div>
 
-                  {/* Items */}
                   <div className="space-y-1">
                     {p.purchase_items.map((item, i) => (
                       <div key={i} className="flex justify-between text-xs">
@@ -320,7 +368,6 @@ export default function PurchasesTab({
                     ))}
                   </div>
 
-                  {/* Kontribusi */}
                   {p.purchase_contributions.length > 0 && (
                     <div className="border-t border-[#2e2e2e] pt-2 space-y-1">
                       {p.purchase_contributions.map((c, i) => (
@@ -328,15 +375,19 @@ export default function PurchasesTab({
                           <span className="text-orange-400">{c.locations?.name}</span>
                           <div className="text-right">
                             <span className="text-green-400">{formatRupiah(c.amount_paid)}</span>
-                            {c.pack_ordered > c.pack_paid && (
-                              <span className="text-yellow-400 ml-2">utang {c.pack_ordered - c.pack_paid} pack</span>
+                            {c.pack_ordered > 0 && c.pack_paid > 0 && c.pack_ordered > c.pack_paid && (
+                              <span className="text-yellow-400 ml-2">
+                                utang {c.pack_ordered - c.pack_paid} pack
+                              </span>
                             )}
                           </div>
                         </div>
                       ))}
                       <div className="flex justify-between text-xs border-t border-[#2e2e2e] pt-1 mt-1">
                         <span className="text-white/40">Admin tanggung</span>
-                        <span className="text-red-400 font-semibold">{formatRupiah(adminTanggung)}</span>
+                        <span className={`font-semibold ${adminTanggung > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {formatRupiah(adminTanggung)}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -353,10 +404,13 @@ export default function PurchasesTab({
       {showConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-[60] px-4 pb-6">
           <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-2xl p-5 w-full max-w-sm space-y-4">
-            <h3 className="font-bold text-lg">Konfirmasi Pembelian</h3>
-            <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-orange-400" />
+              <h3 className="font-bold text-base">Konfirmasi Pembelian</h3>
+            </div>
+            <div className="space-y-2 text-sm bg-[#111] rounded-xl p-4 border border-[#2e2e2e]">
               <div className="space-y-1">
-                {items.filter(i => i.label && i.amount > 0).map((item, i) => (
+                {validItems.map((item, i) => (
                   <div key={i} className="flex justify-between">
                     <span className="text-white/50">{item.label}</span>
                     <span>{formatRupiah(item.amount)}</span>
@@ -371,13 +425,17 @@ export default function PurchasesTab({
                 <div className="space-y-1 border-t border-[#2e2e2e] pt-2">
                   {contributions.map((c, i) => {
                     const loc = locations.find(l => l.id === c.location_id)
+                    const packOrdered = Number(c.pack_ordered) || 0
+                    const packPaid = Number(c.pack_paid) || 0
                     return (
                       <div key={i} className="flex justify-between">
                         <span className="text-orange-400">{loc?.name}</span>
                         <div className="text-right text-xs">
-                          <span className="text-green-400">{formatRupiah(c.amount_paid)}</span>
-                          {c.pack_ordered > c.pack_paid && (
-                            <span className="text-yellow-400 ml-1">utang {c.pack_ordered - c.pack_paid} pack</span>
+                          <span className="text-green-400">{formatRupiah(Number(c.amount_paid) || 0)}</span>
+                          {packOrdered > 0 && packPaid > 0 && packOrdered > packPaid && (
+                            <span className="text-yellow-400 ml-1">
+                              utang {packOrdered - packPaid} pack
+                            </span>
                           )}
                         </div>
                       </div>
@@ -391,13 +449,18 @@ export default function PurchasesTab({
               )}
             </div>
             <div className="flex gap-2">
-              <button onClick={handleConfirm} disabled={loading}
+              <button
+                onClick={handleConfirm}
+                disabled={loading}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: '#f97316' }}>
-                {loading ? 'Menyimpan...' : 'Ya, Catat'}
+                style={{ background: '#f97316' }}
+              >
+                {loading ? 'Menyimpan...' : '✓ Ya, Catat'}
               </button>
-              <button onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[#2e2e2e]">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[#2e2e2e]"
+              >
                 Batal
               </button>
             </div>

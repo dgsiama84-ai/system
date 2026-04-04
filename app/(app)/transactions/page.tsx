@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TransactionForm from '@/components/TransactionForm'
-import PurchasesTab from '@/components/PurchasesTab'
+import AdminTransactionsPanel from '@/components/AdminTransactionsPanel'
 import { Product } from '@/types'
 
 export default async function TransactionsPage() {
@@ -12,25 +12,40 @@ export default async function TransactionsPage() {
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
 
-  // Admin → halaman pengeluaran
+  // ── ADMIN ──────────────────────────────────────────────────
   if (profile?.role === 'admin') {
-  const [{ data: locations }, { data: purchases }] = await Promise.all([
-    supabase.from('locations').select('id, name'),
-    supabase.from('purchases')
-      .select('id, date, note, purchase_items(label, amount), purchase_contributions(pack_ordered, pack_paid, amount_paid, locations(name))')
-      .order('date', { ascending: false })
-      .limit(30),
-  ])
+    const [
+      { data: locations },
+      { data: expenses },
+      { data: purchases },
+    ] = await Promise.all([
+      supabase.from('locations').select('id, name').order('name'),
+      supabase
+        .from('expenses')
+        .select('id, name, amount, category, note, created_at')
+        .order('created_at', { ascending: false })
+        .limit(30),
+      supabase
+        .from('purchases')
+        .select(`
+          id, date, note, created_at,
+          purchase_items(id, label, amount),
+          purchase_contributions(id, amount_paid, locations(name))
+        `)
+        .order('date', { ascending: false })
+        .limit(30),
+    ])
 
-  return (
-    <PurchasesTab
-      purchases={(purchases ?? []) as any}
-      locations={(locations ?? []) as any}
-    />
-  )
-}
+    return (
+      <AdminTransactionsPanel
+        locations={(locations ?? []) as any}
+        expenses={(expenses ?? []) as any}
+        purchases={(purchases ?? []) as any}
+      />
+    )
+  }
 
-  // Staff → form transaksi
+  // ── STAFF ──────────────────────────────────────────────────
   const { data: products } = await supabase
     .from('products').select('id, name, price').order('name')
 
@@ -48,7 +63,7 @@ export default async function TransactionsPage() {
         <p className="text-white/40 text-sm mt-0.5">Catat penjualan baru</p>
       </div>
 
-      <TransactionForm products={products as Product[] ?? []} />
+      <TransactionForm products={(products as Product[]) ?? []} />
 
       {recentTx && recentTx.length > 0 && (
         <div className="card p-4">
@@ -59,7 +74,7 @@ export default async function TransactionsPage() {
                 <div>
                   <p className="text-sm font-semibold">{(tx.products as any)?.name ?? '—'}</p>
                   <p className="text-xs text-white/30">
-                    {tx.quantity}x · {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    {tx.quantity}x · {new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
                   </p>
                 </div>
                 <p className="text-sm font-bold text-orange-400">

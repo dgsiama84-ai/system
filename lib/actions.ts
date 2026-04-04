@@ -95,27 +95,29 @@ export async function addStockIn(formData: FormData) {
   if (error) throw new Error(error.message)
   revalidatePath('/inventory')
 }
-// --- EXPENSES ---
 export async function addExpense(formData: FormData) {
   const supabase = await createClient()
-  const profile = await getUserProfile(supabase)
-  if (!profile) throw new Error('Unauthorized')
-  if (profile.role !== 'admin') throw new Error('Admin only')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
 
-  const location_id = formData.get('location_id') as string
-  if (!location_id) throw new Error('Lokasi wajib dipilih')
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') throw new Error('Admin only')
+
+  const name = formData.get('name') as string
+  const amount = Number(formData.get('amount'))
+  const category = formData.get('category') as string
+  const note = formData.get('note') as string | null
+
+  if (!name || !amount || !category) throw new Error('Data tidak valid')
 
   const { error } = await supabase.from('expenses').insert({
-    name: formData.get('name') as string,
-    amount: Number(formData.get('amount')),
-    category: formData.get('category') as string,
-    date: formData.get('date') as string,
-    note: (formData.get('note') as string) || null,
-    created_by: profile.uid,
-    location_id,
+    name, amount, category,
+    note: note || null,
+    created_by: user.id,
   })
-
   if (error) throw new Error(error.message)
+
   revalidatePath('/transactions')
 }
 
@@ -163,40 +165,44 @@ export async function submitOpname(ingredientId: string, realQty: number) {
 // --- PURCHASES ---
 export async function addPurchase(formData: FormData) {
   const supabase = await createClient()
-  const profile = await getUserProfile(supabase)
-  if (!profile) throw new Error('Unauthorized')
-  if (profile.role !== 'admin') throw new Error('Admin only')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') throw new Error('Admin only')
 
   const date = formData.get('date') as string
-  const note = (formData.get('note') as string) || null
-
+  const note = formData.get('note') as string | null
   const items = JSON.parse(formData.get('items') as string) as { label: string; amount: number }[]
-  const contributions = JSON.parse(formData.get('contributions') as string) as {
-    location_id: string
-    pack_ordered: number
-    pack_paid: number
-    amount_paid: number
-  }[]
+  const contributions = JSON.parse(formData.get('contributions') as string) as { location_id: string; amount_paid: number }[]
 
   if (!items.length) throw new Error('Minimal 1 item biaya')
 
+  // Insert purchase
   const { data: purchase, error: purchaseError } = await supabase
     .from('purchases')
-    .insert({ date, note, created_by: profile.uid })
+    .insert({ date, note: note || null, created_by: user.id })
     .select('id')
     .single()
-
   if (purchaseError) throw new Error(purchaseError.message)
 
-  const { error: itemsError } = await supabase.from('purchase_items').insert(
-    items.map(i => ({ purchase_id: purchase.id, label: i.label, amount: i.amount }))
-  )
+  // Insert items
+  const { error: itemsError } = await supabase
+    .from('purchase_items')
+    .insert(items.map(i => ({ purchase_id: purchase.id, label: i.label, amount: i.amount })))
   if (itemsError) throw new Error(itemsError.message)
 
-  if (contributions.length > 0) {
-    const { error: contribError } = await supabase.from('purchase_contributions').insert(
-      contributions.map(c => ({ purchase_id: purchase.id, ...c }))
-    )
+  // Insert contributions (hanya yang amount_paid > 0)
+  const validContribs = contributions.filter(c => c.location_id && Number(c.amount_paid) > 0)
+  if (validContribs.length > 0) {
+    const { error: contribError } = await supabase
+      .from('purchase_contributions')
+      .insert(validContribs.map(c => ({
+        purchase_id: purchase.id,
+        location_id: c.location_id,
+        amount_paid: Number(c.amount_paid),
+      })))
     if (contribError) throw new Error(contribError.message)
   }
 
