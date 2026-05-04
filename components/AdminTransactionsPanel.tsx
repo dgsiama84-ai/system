@@ -448,7 +448,7 @@ function PurchasesTab({ purchases, locations }: { purchases: Purchase[]; locatio
                           </div>
                         ))}
                         <div className="flex justify-between text-xs border-t border-[#2e2e2e] pt-1 mt-1">
-                          <span className="text-white/40">Saya Tanggung</span>
+                          <span className="text-white/40">Sisa kembalian</span>
                           <span className={`font-semibold ${admin > 0 ? 'text-red-400' : 'text-green-400'}`}>
                             {formatRupiah(admin)}
                           </span>
