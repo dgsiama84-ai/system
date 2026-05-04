@@ -490,7 +490,7 @@ function PurchasesTab({ purchases, locations }: { purchases: Purchase[]; locatio
                     </div>
                   ))}
                   <div className="flex justify-between border-t border-[#2e2e2e] pt-1">
-                    <span className="text-white/50">Saya Tanggung</span>
+                    <span className="text-white/50">Sisa kembalian</span>
                     <span className="text-red-400 font-semibold">{formatRupiah(adminTanggung)}</span>
                   </div>
                 </div>
