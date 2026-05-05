@@ -383,12 +383,16 @@ export default function PurchasesTab({
                           </div>
                         </div>
                       ))}
-                      <div className="flex justify-between text-xs border-t border-[#2e2e2e] pt-1 mt-1">
-                        <span className="text-white/40">Admin tanggung</span>
-                        <span className={`font-semibold ${adminTanggung > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                          {formatRupiah(adminTanggung)}
-                        </span>
-                      </div>
+                      {adminTanggung !== 0 && (
+  <div className="flex justify-between text-xs border-t border-[#2e2e2e] pt-1 mt-1">
+    <span className="text-white/40">
+      {adminTanggung > 0 ? 'Ditanggung Admin' : 'Sisa kembalian'}
+    </span>
+    <span className={`font-semibold ${adminTanggung > 0 ? 'text-red-400' : 'text-green-400'}`}>
+      {adminTanggung > 0 ? formatRupiah(adminTanggung) : formatRupiah(Math.abs(adminTanggung))}
+    </span>
+  </div>
+)}
                     </div>
                   )}
 
@@ -441,10 +445,16 @@ export default function PurchasesTab({
                       </div>
                     )
                   })}
-                  <div className="flex justify-between border-t border-[#2e2e2e] pt-1">
-                    <span className="text-white/50">Admin tanggung</span>
-                    <span className="text-red-400 font-semibold">{formatRupiah(tanggunganAdmin)}</span>
-                  </div>
+                  {tanggunganAdmin !== 0 && (
+  <div className="flex justify-between border-t border-[#2e2e2e] pt-1">
+    <span className="text-white/50">
+      {tanggunganAdmin > 0 ? 'Ditanggung Admin' : 'Sisa kembalian'}
+    </span>
+    <span className={`font-semibold ${tanggunganAdmin > 0 ? 'text-red-400' : 'text-green-400'}`}>
+      {formatRupiah(Math.abs(tanggunganAdmin))}
+    </span>
+  </div>
+)}
                 </div>
               )}
             </div>
