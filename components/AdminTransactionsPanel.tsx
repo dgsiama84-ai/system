@@ -391,7 +391,7 @@ function PurchasesTab({ purchases, locations }: { purchases: Purchase[]; locatio
             </div>
             {contribs.length > 0 && (
               <div className="flex justify-between mt-2 px-1 border-t border-[#2e2e2e] pt-2">
-                <span className="text-xs text-white/40">Ditanggung Admin</span>
+                <span className="text-xs text-white/40">Utang</span>
                 <span className={`text-sm font-bold ${adminTanggung > 0 ? 'text-red-400' : 'text-green-400'}`}>
                   {formatRupiah(adminTanggung)}
                 </span>
@@ -450,7 +450,7 @@ function PurchasesTab({ purchases, locations }: { purchases: Purchase[]; locatio
                         {admin !== 0 && (
   <div className="flex justify-between text-xs border-t border-[#2e2e2e] pt-1 mt-1">
     <span className="text-white/40">
-      {admin > 0 ? 'Ditanggung Admin' : 'Sisa kembalian'}
+      {admin > 0 ? 'Utang' : 'Sisa kembalian'}
     </span>
     <span className={`font-semibold ${admin > 0 ? 'text-red-400' : 'text-green-400'}`}>
       {formatRupiah(Math.abs(admin))}
@@ -496,7 +496,7 @@ function PurchasesTab({ purchases, locations }: { purchases: Purchase[]; locatio
                   {adminTanggung !== 0 && (
   <div className="flex justify-between border-t border-[#2e2e2e] pt-1">
     <span className="text-white/50">
-      {adminTanggung > 0 ? 'Ditanggung Admin' : 'Sisa kembalian'}
+      {adminTanggung > 0 ? 'Utang' : 'Sisa kembalian'}
     </span>
     <span className={`font-semibold ${adminTanggung > 0 ? 'text-red-400' : 'text-green-400'}`}>
       {formatRupiah(Math.abs(adminTanggung))}
